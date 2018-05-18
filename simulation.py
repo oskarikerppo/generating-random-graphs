@@ -40,6 +40,7 @@ class network:
 		self.name = name
 		self.nodes = []
 		self.edges = [] 
+		self.paths = {}
 
 	def add_node(self, x):
 		"""adds a node to network. If argument is list, all items are added"""
@@ -152,44 +153,27 @@ class network:
 		return clustering_coefficient
 
 
-	def exists_path(self, n, m):
+	def exists_path(self, s, n, t, path_length=0, visited_nodes=[]):
 		"""Returns length of shortest path between vertices n and m if exists, and zero otherwise"""
 		"""NOTICE !!! Poorly optimized. Gets very slow if search depth greater than 10. Therefore
 		search is cut if path not found with length under 10 """
 		edges = self.list_edges()
-		paths = []
-		travelled_length = 0
-		paths_from_n = [x[1] if x[1] != n else x[0] for x in edges if n in x]
-		for node in paths_from_n:
-			paths.append([n,node])
-		if len(paths_from_n) == 0:
-			return 0
-		elif [n,m] in paths:
-			return 1
+		visited_nodes = visited_nodes + [n]
+		n_connects_to = [x[1] if x[1] != n else x[0] for x in edges if n in x]
+		n_connects_to = [x for x in n_connects_to if x not in visited_nodes]
+		#print("Node" + str(n))
+		#print("Visited nodes" + str(visited_nodes))
+		#print("N connects to" + str(n_connects_to))
+		if t in n_connects_to:
+			if self.paths.get(str(s)+ str(t),0) == 0:
+				self.paths[str(s)+str(t)] = [path_length+1]
+			else:
+				self.paths[str(s)+str(t)].append(path_length+1)
 		else:
-			k = 0
-			while k < 10:
-				travelled_length += 1
-				new_paths = []
-				for path in paths:
-					if path == None:
-						continue
-					start_point = path[0]
-					end_point = path[-1]
-					path_connects_to = [x[1] if x[1] != end_point else x[0] for x in edges if end_point in x]
-					path_connects_to = [x for x in path_connects_to if x not in path]
-					if m in path_connects_to:
-						return travelled_length + 1
-					for node in path_connects_to:
-						new_path = path
-						new_paths.append(new_path + [node])
-				if new_paths == []:
-					return 0
-				else:	
-					paths = [x for x in new_paths]
-				k += 1
-			if k == 10:
-				return 0
+			for node in n_connects_to:
+				self.exists_path(s, node, t, path_length+1, visited_nodes)
+
+
 
 
 
@@ -208,10 +192,11 @@ class network:
 		longest_start = 0
 		longest_end = 0
 		for pair in pairs_of_nodes:
-			path = self.exists_path(pair[0],pair[1])
-			if path == 0:
-				#return 0
-				pass
+			self.exists_path(pair[0],pair[0],pair[1])
+			if self.paths.get(str(pair[0]) + str(pair[1]),0) == 0:
+				path = 0
+			else:
+				path = min(self.paths[str(pair[0]) + str(pair[1])])
 			paths.append(path)
 			if path > longest_path:
 				longest_start = pair[0]
@@ -275,6 +260,7 @@ def Gnm(nodes, edges):
 	clustering_coefficient_2 = n.get_clustering_coefficient()
 	plt.text(-1.45, 1.05, "Clustering coefficient: " + str("%.2f" % clustering_coefficient_2), fontsize=11)
 	diameter = n.diameter()
+	#print(n.paths)
 	longest_path = diameter[1]
 	average_path_length = diameter[2]
 	diameter = diameter[0]
@@ -319,6 +305,7 @@ def Gnp(nodes, p):
 	clustering_coefficient_2 = m.get_clustering_coefficient()
 	plt.text(-1.45, 1.05, "Clustering coefficient: " + str("%.2f" % clustering_coefficient_2), fontsize=11)	
 	diameter = m.diameter()
+	#print(m.paths)
 	longest_path = diameter[1]
 	average_path_length = diameter[2]
 	diameter = diameter[0]
@@ -339,7 +326,7 @@ def Gnp(nodes, p):
 
 def main(number_of_vertices, p, number_of_simulations):
 	"""Generates many instances of random networks and collects statistics of properties"""
-
+	
 	gnp_average_degree = []
 	gnp_average_clustering = []
 	gnp_average_diameter = []
@@ -419,15 +406,15 @@ def main(number_of_vertices, p, number_of_simulations):
 	print("Calculated clustering coefficient: " + str(c_clustering))
 	c_diameter = math.log(number_of_vertices)/math.log(c_mean_degree)
 	print("Calculated diameter (minus constant value): " + str(c_diameter))
-
+	
 
 	#Sample figures and degree distributions as a histogram
 	plt.close()
 	plt.cla()
 	plt.clf()
 	
-
 	
+
 	gnp = Gnp(number_of_vertices, p)
 	gnm = Gnm(number_of_vertices, average_number_of_edges)
 	plt.figure(3)
@@ -448,5 +435,5 @@ def main(number_of_vertices, p, number_of_simulations):
 
 if __name__ == "__main__":
 	"""Arguments: number of vertices, p in G(n,p), nmber of runs of simulation"""
-	main(10,0.3,1)
+	main(14,0.2,1)
 
