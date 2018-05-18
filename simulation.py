@@ -3,7 +3,7 @@
 #Simulation of Erdős–Rényi random network
 
 #Oskari Kerppo
-#9.5.2018
+#18.5.2018
 
 #matplotlib used for visualization
 
@@ -15,22 +15,14 @@ import random
 import numpy as np
 
 
-#https://gist.github.com/rougier/ebe734dcc6f4ff450abf
+
 def binomial(n, k):
-    """
-    A fast way to calculate binomial coefficients by Andrew Dalke.
-    See http://stackoverflow.com/questions/3025162/statistics-combinations-in-python
-    """
-    if 0 <= k <= n:
-        ntok = 1
-        ktok = 1
-        for t in xrange(1, min(k, n - k) + 1):
-            ntok *= n
-            ktok *= t
-            n -= 1
-        return ntok // ktok
-    else:
-        return 0
+    p = 1    
+    for i in xrange(1, min(k, n - k) + 1):
+        p *= n
+        p //= i
+        n -= 1
+    return p
 
 
 
