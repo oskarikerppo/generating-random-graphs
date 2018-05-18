@@ -165,10 +165,10 @@ class network:
 		#print("Visited nodes" + str(visited_nodes))
 		#print("N connects to" + str(n_connects_to))
 		if t in n_connects_to:
-			if self.paths.get(str(s)+ str(t),0) == 0:
-				self.paths[str(s)+str(t)] = [path_length+1]
+			if self.paths.get(str(s)+"/"+str(t),0) == 0:
+				self.paths[str(s)+"/"+str(t)] = [path_length+1]
 			else:
-				self.paths[str(s)+str(t)].append(path_length+1)
+				self.paths[str(s)+"/"+str(t)].append(path_length+1)
 		else:
 			for node in n_connects_to:
 				self.exists_path(s, node, t, path_length+1, visited_nodes)
@@ -193,10 +193,10 @@ class network:
 		longest_end = 0
 		for pair in pairs_of_nodes:
 			self.exists_path(pair[0],pair[0],pair[1])
-			if self.paths.get(str(pair[0]) + str(pair[1]),0) == 0:
+			if self.paths.get(str(pair[0])+"/"+str(pair[1]),0) == 0:
 				path = 0
 			else:
-				path = min(self.paths[str(pair[0]) + str(pair[1])])
+				path = min(self.paths[str(pair[0])+"/"+str(pair[1])])
 			paths.append(path)
 			if path > longest_path:
 				longest_start = pair[0]
@@ -435,5 +435,5 @@ def main(number_of_vertices, p, number_of_simulations):
 
 if __name__ == "__main__":
 	"""Arguments: number of vertices, p in G(n,p), nmber of runs of simulation"""
-	main(14,0.2,1)
+	main(15,0.1,1)
 
