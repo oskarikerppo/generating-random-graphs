@@ -13,16 +13,21 @@ from matplotlib.animation import FuncAnimation
 import math
 import random
 import numpy as np
+import time
 
 
 
 def binomial(n, k):
-    p = 1    
-    for i in xrange(1, min(k, n - k) + 1):
-        p *= n
-        p //= i
-        n -= 1
-    return p
+    if 0 <= k <= n:
+        ntok = 1
+        ktok = 1
+        for t in range(1, min(k, n - k) + 1):
+            ntok *= n
+            ktok *= t
+            n -= 1
+        return ntok // ktok
+    else:
+        return 0
 
 
 
@@ -135,27 +140,8 @@ class network:
 		mean_degree = (2 * m) / numOfNodes
 		return mean_degree 
 
+
 	def get_clustering_coefficient(self):
-		"""Returns culstering voefficient of network"""
-		A = self.get_adjacency_matrix()
-		all_nodes = self.list_nodes()
-		numOfNodes = len(all_nodes)
-		k = 0.0
-		k_2 = 0.0
-		for i in range(0, numOfNodes):
-			a = np.sum(A[i])
-			k += a
-			k_2 += math.pow(a, 2)
-		k = k / numOfNodes
-		k_2 = k_2 / numOfNodes	
-		#print("degree:" + str(k))
-		#print("second moment: " + str(k_2))
-		#print(k_2)	
-		clustering_coefficient = math.pow((k_2-k), 2) / (numOfNodes * math.pow(k, 3))
-		return clustering_coefficient
-
-
-	def get_clustering_coefficient_2(self):
 		"""Returns culstering coefficient of network"""
 		A = self.get_adjacency_matrix()
 		A2 = np.dot(A,A)
@@ -168,49 +154,42 @@ class network:
 
 	def exists_path(self, n, m):
 		"""Returns length of shortest path between vertices n and m if exists, and zero otherwise"""
+		"""NOTICE !!! Poorly optimized. Gets very slow if search depth greater than 10. Therefore
+		search is cut if path not found with length under 10 """
 		edges = self.list_edges()
 		paths = []
 		travelled_length = 0
 		paths_from_n = [x[1] if x[1] != n else x[0] for x in edges if n in x]
 		for node in paths_from_n:
 			paths.append([n,node])
-		#print("Paths from n: " + str(paths))
 		if len(paths_from_n) == 0:
 			return 0
 		elif [n,m] in paths:
 			return 1
 		else:
-			while True:
+			k = 0
+			while k < 10:
 				travelled_length += 1
 				new_paths = []
 				for path in paths:
 					if path == None:
 						continue
 					start_point = path[0]
-					#print("Starting point: " + str(start_point))
 					end_point = path[-1]
-					#print("End point: " + str(end_point))
 					path_connects_to = [x[1] if x[1] != end_point else x[0] for x in edges if end_point in x]
 					path_connects_to = [x for x in path_connects_to if x not in path]
-					#print("Node " + str(end_point) + " connects to: " + str(path_connects_to))
 					if m in path_connects_to:
 						return travelled_length + 1
 					for node in path_connects_to:
-						#print("Node: " + str(node))
-						#print("Current path: " + str(path))
 						new_path = path
 						new_paths.append(new_path + [node])
-						#print("new path: " + str(new_path))
-					#print("New paths: " + str(new_paths))
 				if new_paths == []:
 					return 0
-				else:
+				else:	
 					paths = [x for x in new_paths]
-					#print("Paths from n: " + str(paths))
-
-
-
-
+				k += 1
+			if k == 10:
+				return 0
 
 
 
@@ -225,7 +204,6 @@ class network:
 			for j in range(len(nodes)):
 				if i < j:
 					pairs_of_nodes.append([i,j])
-		#print("Pairs of nodes: " + str(pairs_of_nodes))
 		longest_path = 0
 		longest_start = 0
 		longest_end = 0
@@ -239,8 +217,6 @@ class network:
 				longest_start = pair[0]
 				longest_end = pair[1]
 				longest_path = path
-
-		#print("Longest path starts at " + str(longest_start) + " and ends at " + str(longest_end) + " with length " + str(longest_path))
 		plt.text(-1.45, 1.35, "Longest path starts at " + str(longest_start) + " and ends at " + str(longest_end) + " with length " + str(longest_path), fontsize=11)
 		if 0 in paths:
 			return [0, longest_path, sum(paths) / float(len(paths))]
@@ -294,21 +270,16 @@ def Gnm(nodes, edges):
 	circle1 = plt.Circle((0, 0), 1, color='b', fill=False)
 	ax.add_artist(circle1)
 	n.draw_network("G(n,m) model with " + str(nodes) + " nodes and " + str(edges) + " edges")
-	#print(n.get_adjacency_matrix())
 	mean_degree = n.get_mean_degree()
 	plt.text(-1.45, 1.2, "Mean degree: " + str(mean_degree), fontsize=11)		
-	#clustering_coefficient = n.get_clustering_coefficient()
-	clustering_coefficient_2 = n.get_clustering_coefficient_2()
-	plt.text(-1.45, 1.05, "Clustering coefficient: " + str(clustering_coefficient_2), fontsize=11)
-	#print("Nodes: " + str(n.list_nodes()))
-	#print("Edges: " + str(n.list_edges()))
+	clustering_coefficient_2 = n.get_clustering_coefficient()
+	plt.text(-1.45, 1.05, "Clustering coefficient: " + str("%.2f" % clustering_coefficient_2), fontsize=11)
 	diameter = n.diameter()
 	longest_path = diameter[1]
 	average_path_length = diameter[2]
 	diameter = diameter[0]
-	#print("Diameter: " + str(diameter))
 	plt.text(-1.45,0.9, "Diameter of network: " + str(diameter), fontsize=11)	
-	plt.text(-1.45,0.75, "Average path length: " + str(average_path_length), fontsize=11)	
+	plt.text(-1.45,0.75, "Average path length: " + str("%.2f" % average_path_length), fontsize=11)	
 	nodes = n.list_nodes()
 	for node in nodes:
 		coords = node.get_coordinates()
@@ -337,30 +308,22 @@ def Gnp(nodes, p):
 					added += 1
 				else:
 					not_added += 1
-	#print(added)
-	#print(not_added)
 	total = added + not_added
-	#print(added / total)
 	plt.figure(2)
 	ax = plt.gca()
 	circle1 = plt.Circle((0, 0), 1, color='b', fill=False)
 	ax.add_artist(circle1)
 	m.draw_network("G(n,p) model with " + str(nodes) + " nodes and  p equal to " + str(p))
-	#print(m.get_adjacency_matrix())
 	mean_degree = m.get_mean_degree()
 	plt.text(-1.45, 1.2, "Mean degree: " + str(mean_degree), fontsize=11)	
-	#clustering_coefficient = m.get_clustering_coefficient()
-	clustering_coefficient_2 = m.get_clustering_coefficient_2()
-	plt.text(-1.45, 1.05, "Clustering coefficient: " + str(clustering_coefficient_2), fontsize=11)	
-	#print("Nodes: " + str(m.list_nodes()))
-	#print("Edges: " + str(m.list_edges()))
+	clustering_coefficient_2 = m.get_clustering_coefficient()
+	plt.text(-1.45, 1.05, "Clustering coefficient: " + str("%.2f" % clustering_coefficient_2), fontsize=11)	
 	diameter = m.diameter()
 	longest_path = diameter[1]
 	average_path_length = diameter[2]
 	diameter = diameter[0]
-	#print("Diameter: " + str(diameter))
 	plt.text(-1.45,0.9, "Diameter of network: " + str(diameter), fontsize=11)	
-	plt.text(-1.45,0.75, "Average path length: " + str(average_path_length), fontsize=11)	
+	plt.text(-1.45,0.75, "Average path length: " + str("%.2f" % average_path_length), fontsize=11)	
 	nodes = m.list_nodes()
 	for node in nodes:
 		coords = node.get_coordinates()
@@ -374,8 +337,9 @@ def Gnp(nodes, p):
 
 
 
-def main(number_of_vertices, number_of_edges, p, number_of_simulations):
+def main(number_of_vertices, p, number_of_simulations):
 	"""Generates many instances of random networks and collects statistics of properties"""
+
 	gnp_average_degree = []
 	gnp_average_clustering = []
 	gnp_average_diameter = []
@@ -394,6 +358,9 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 		gnp_number_of_edges.append(gn[5])
 		gnp_degree_list += gn[6]
 
+
+	average_number_of_edges = int(round(sum(gnp_number_of_edges) / float(len(gnp_number_of_edges))))
+	
 	gnm_average_degree = []
 	gnm_average_clustering = []
 	gnm_average_diameter = []
@@ -403,7 +370,7 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 	gnm_degree_list = []
 
 	for i in range(0,number_of_simulations):
-		gm = Gnm(number_of_vertices, number_of_edges)
+		gm = Gnm(number_of_vertices, average_number_of_edges)
 		gnm_average_degree.append(gm[0])
 		gnm_average_clustering.append(gm[1])
 		gnm_average_diameter.append(gm[2])
@@ -412,6 +379,7 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 		gnm_number_of_edges.append(gm[5])
 		gnm_degree_list += gm[6]
 
+	
 	print("Gnp average mean degree: " + str(sum(gnp_average_degree) / float(len(gnp_average_degree))))
 	print("Standard deviation: " + str(np.std(gnp_average_degree)))
 	print("Gnp average clustering coefficient: " + str(sum(gnp_average_clustering) / float(len(gnp_average_clustering))))
@@ -426,7 +394,7 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 	print("Standard deviation: " + str(np.std(gnp_number_of_edges)))
 
 	print("\n-----------------------------------------------------------\n")
-
+	
 	print("Gnm average mean degree: " + str(sum(gnm_average_degree) / float(len(gnm_average_degree))))
 	print("Standard deviation: " + str(np.std(gnm_average_degree)))
 	print("Gnm average clustering coefficient: " + str(sum(gnm_average_clustering) / float(len(gnm_average_clustering))))
@@ -439,7 +407,7 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 	print("Standard deviation: " + str(np.std(gnm_average_path_length)))
 	print("Gnm average number of edges: " + str(sum(gnm_number_of_edges) / float(len(gnm_number_of_edges))))
 	print("Standard deviation: " + str(np.std(gnm_number_of_edges)))
-
+	
 	print("\n---------------------------MATHS FOR G(n,p)--------------------------------\n")
 
 
@@ -449,7 +417,7 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 	print("Calculated mean degree: " + str(c_mean_degree))
 	c_clustering = c_mean_degree / (number_of_vertices - 1)
 	print("Calculated clustering coefficient: " + str(c_clustering))
-	c_diameter = math.log(number_of_edges)/math.log(c_mean_degree)
+	c_diameter = math.log(number_of_vertices)/math.log(c_mean_degree)
 	print("Calculated diameter (minus constant value): " + str(c_diameter))
 
 
@@ -457,8 +425,11 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 	plt.close()
 	plt.cla()
 	plt.clf()
+	
+
+	
 	gnp = Gnp(number_of_vertices, p)
-	gnm = Gnm(number_of_vertices, number_of_edges)
+	gnm = Gnm(number_of_vertices, average_number_of_edges)
 	plt.figure(3)
 	hist_1 = plt.hist(gnp[6])
 	plt.xlim(xmin=0, xmax=max(gnp[6])+1)
@@ -469,17 +440,13 @@ def main(number_of_vertices, number_of_edges, p, number_of_simulations):
 	hist_2 = plt.hist(gnm[6])
 	plt.xlim(xmin=0, xmax=max(gnm[6])+1)
 	plt.xticks(range(int(max(gnm[6]))+1))
-	plt.title("Degree distribution of sample G(n,m) model with " + str(number_of_vertices) + " vertices and " + str(number_of_edges) + " number of edges")
+	plt.title("Degree distribution of sample G(n,m) model with " + str(number_of_vertices) + " vertices and " + str(average_number_of_edges) + " number of edges")
 	plt.xlabel("Degree")
 	plt.show()
-
-
-
-
-
+	
 
 
 if __name__ == "__main__":
-	"""Arguments: number of vertices, number of edges in G(n,m), p in G(n,p), nmber of runs of simulation"""
-	main(20,57,0.3,10)
+	"""Arguments: number of vertices, p in G(n,p), nmber of runs of simulation"""
+	main(10,0.3,1)
 
